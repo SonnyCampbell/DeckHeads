@@ -1,28 +1,34 @@
 import Card from './card';
 import DeckOfCards from './myDeck';
+import translate from './lib/translate'
+import prefix from './lib/prefix'
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Deck  from './lib/deck';
 
 var Hand = React.createClass({
+    onMouseOver: function(card){
+        setTimeout(function() {
+            let transform = prefix('transform')
+            card.$el.style[transform] = translate(card.x + 'px', (card.y - 20) + 'px') + 'rotate(' + card.rot + 'deg)' ;
+        }, 70);      
+    },
+    onMouseLeave: function(card){
+        setTimeout(function() {
+            let transform = prefix('transform')
+            card.$el.style[transform] = translate(card.x + 'px', (card.y) + 'px') + 'rotate(' + card.rot + 'deg)' ;
+        }, 70);
+    },
     render: function(){
         let hand = this.props.hand;
         let player = this.props.player;
 
         for (let card of hand){
-            // card.$el.onclick = () => {
-            //     card.animateTo({
-            //         delay: 250,
-            //         duration: 250,
-
-            //         x: Math.round(100),
-            //         y: Math.round(100),
-            //         rot: 0
-            //     });
-            // };
-            //card.$el.onclick = function(){test()}
-            card.$el.onclick = this.props.discard.bind(null, card)
+            card.$el.onclick = this.props.discard.bind(null, card);
+            card.$el.onmouseover = this.onMouseOver.bind(null, card);
+            card.$el.onmouseleave = this.onMouseLeave.bind(null, card);
         };
+
         return null;
     }
 });
@@ -48,7 +54,6 @@ var Game = React.createClass({
                 card.setSide('back')
             }, i * 7.5)
         });
-
         deck.shuffle();
 
         let playerHands = []
@@ -60,20 +65,26 @@ var Game = React.createClass({
     },
     discard: function(card){
 
-        card.$el.style.zIndex = this.state.discardZ;
-        this.state.discardZ = this.state.discardZ + 1;
-        console.log(this.state.discardZ + ' ' + card.$el.style.zIndex);
+        card.$el.style.zIndex = 100;
 
         card.animateTo({
             delay: 10,
-            duration: 50,
+            duration: 250,
 
             x: Math.round(this.state.deck.cards[0].x + 100),
             y: Math.round(this.state.deck.cards[0].y),
             rot: 0
-        });
+        }); 
 
+        let discard = this.state.discardZ;
+        setTimeout(function() {
+            card.$el.style.zIndex = discard;
+            
+            console.log(discard + ' ' + card.$el.style.zIndex); 
+        }, 250);
         
+        this.state.discardZ = this.state.discardZ + 1;
+             
     },
     render: function() {
 
