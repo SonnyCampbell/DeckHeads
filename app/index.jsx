@@ -5,9 +5,6 @@ import ReactDOM from 'react-dom';
 import Deck  from './lib/deck';
 
 var Hand = React.createClass({
-    test: function(){
-        alert("message");
-    },
     render: function(){
         let hand = this.props.hand;
         let player = this.props.player;
@@ -32,52 +29,66 @@ var Hand = React.createClass({
 
 var Game = React.createClass({
     getInitialState: function(){
-        return {  deck: Deck(false) };
+        return {  
+            deck: Deck(false),
+            playerHands: [],
+            discardZ: 0
+        };
+    },
+    componentDidMount: function(){
+        var $deckContainer = document.getElementById('deckContainer');
+        let deck = this.state.deck;
+
+        // add to DOM
+        deck.mount($deckContainer);
+        deck.cards.forEach(function (card, i) {
+            //card.enableDragging();
+            //card.enableFlipping();
+            setTimeout(function () {
+                card.setSide('back')
+            }, i * 7.5)
+        });
+
+        deck.shuffle();
+
+        let playerHands = []
+        for (let i = 0; i < 2; i++){
+            playerHands.push(<Hand hand={deck.deal(5, i)} player={i} discard={this.discard} key={i}/>);
+        }
+
+        this.setState({ playerHands: playerHands });
     },
     discard: function(card){
-        card.$el.onclick = () => {
-            card.animateTo({
-                delay: 10,
-                duration: 50,
 
-                x: Math.round(this.state.deck.cards[0].x + 100),
-                y: Math.round(this.state.deck.cards[0].y),
-                rot: 0
-            });
-        };
+        card.$el.style.zIndex = this.state.discardZ;
+        this.state.discardZ = this.state.discardZ + 1;
+        console.log(this.state.discardZ + ' ' + card.$el.style.zIndex);
+
+        card.animateTo({
+            delay: 10,
+            duration: 50,
+
+            x: Math.round(this.state.deck.cards[0].x + 100),
+            y: Math.round(this.state.deck.cards[0].y),
+            rot: 0
+        });
+
+        
     },
     render: function() {
 
-    var $deckContainer = document.getElementById('deckContainer');
-    let deck = this.state.deck;
+        let playerHands = this.state.playerHands;  
 
-    // add to DOM
-    deck.mount($deckContainer);
-    deck.cards.forEach(function (card, i) {
-        card.enableDragging();
-        card.enableFlipping();
-        setTimeout(function () {
-            card.setSide('back')
-        }, i * 7.5)
-    });
-
-    deck.shuffle();
-
-    let playerHands = []
-    for (let i = 0; i < 2; i++){
-        playerHands.push(<Hand hand={deck.deal(5, i)} player={i} discard={this.discard} key={i}/>);
+        return (
+        <div id="game">
+            <h1>Deck Heads</h1>
+            <hr />
+            
+            {playerHands}
+            
+        </div>
+        );
     }
-
-    return (
-      <div id="game">
-        <h1>Deck Heads</h1>
-        <hr />
-        
-        {playerHands}
-        
-      </div>
-    );
-  }
 });
 
 

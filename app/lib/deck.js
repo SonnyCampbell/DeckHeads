@@ -92,11 +92,15 @@ export default function Deck (jokers) {
 
           onStart: function () {
             card.$el.style.zIndex = (len - 1) + i
+            console.log( card.$el.style.zIndex)
           },
           onComplete: function () {
             card.setSide('front')
           }
-        })
+        });
+
+        //card.$el.style.zIndex = i
+        //console.log(card.$el.style.zIndex);
       }
 
       return hand;
