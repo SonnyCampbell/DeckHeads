@@ -87,12 +87,11 @@ export default function Deck (jokers) {
           duration: 250,
 
           x: Math.round((i - 2.05) * 20 * fontSize / 16),
-          y: Math.round(-130 * fontSize / 16) + (260 * fontSize / 16 * player),
+          y: Math.round(-130 * fontSize / 16) + ((260 * fontSize / 16) * player),
           rot: -10 + (i * 5),
 
           onStart: function () {
             card.$el.style.zIndex = (len - 1) + i
-            console.log( card.$el.style.zIndex)
           },
           onComplete: function () {
             card.setSide('front')
