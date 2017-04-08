@@ -25,17 +25,49 @@ var Hand = React.createClass({
         }
         
     },
-    reSortHand: function(hand, player){
+    reSortHand: function(hand){
         let fontSize = getFontSize();
+
+        console.log(hand);
 
         for (let i = 0; i < hand.length; i++) {
             let card = hand[i];
             card.animateTo({
                 duration: 10,
+                delay: 250,
 
                 x: Math.round((i - 2.05) * 20 * fontSize / 16),
-                y: Math.round(-130 * fontSize / 16) + ((260 * fontSize / 16) * player),
+                y: Math.round(-130 * fontSize / 16) + ((260 * fontSize / 16) * this.props.player),
                 rot: -10 + (i * 5)
+            });
+        }
+    },
+    discardCard: function(card){
+        if(this.props.activePlayer) {
+            card.$el.style.zIndex = 100;
+            card.$el.onclick = {}
+
+            card.animateTo({
+                delay: 10,
+                duration: 250,
+                x: Math.round(this.props.deckX + 100),
+                y: Math.round(this.props.deckY),
+                rot: 0
+            }); 
+            
+            let hand = this.props.hand;
+            for (var i =0; i < hand.length; i++){
+                if (hand[i].suit === card.suit && hand[i].rank === card.rank) {
+                    hand.splice(i,1);
+                    break;
+                }
+            }
+
+            this.props.discard(card, this.props.activePlayer, hand);
+            this.reSortHand(hand);
+
+            this.setState({
+                hand: hand
             });
         }
     },
@@ -44,12 +76,13 @@ var Hand = React.createClass({
         let player = this.props.player;
         let active = this.props.activePlayer;
 
-        
-        this.reSortHand(hand, player);
+        console.log('handsize ' + hand.length);
+        //this.reSortHand(hand, player);
 
 
         for (let card of hand){
-            card.$el.onclick = this.props.discard.bind(null, card, active, hand);
+            //card.$el.onclick = this.props.discard.bind(null, card, active, hand);
+            card.$el.onclick = this.discardCard.bind(null, card);
             card.$el.onmouseover = this.onMouseOver.bind(null, card);
             card.$el.onmouseleave = this.onMouseLeave.bind(null, card);
         };
@@ -87,64 +120,55 @@ var Game = React.createClass({
         for (let i = 0; i < this.state.numOfPlayers; i++){
             let hand = deck.deal(5, i);
             if (i===0)
-                playerHands.push(<Hand hand={hand} player={i} discard={this.discard} activePlayer={true} key={i}/>);
+                playerHands.push(<Hand hand={hand} 
+                                    player={i} 
+                                    discard={this.discard} 
+                                    activePlayer={true}
+                                    deckX = {this.state.deck.cards[0].x}
+                                    deckY = {this.state.deck.cards[0].y} 
+                                    key={i}/>);
             else
-                playerHands.push(<Hand hand={hand} player={i} discard={this.discard} activePlayer={false} key={i}/>);
+                playerHands.push(<Hand hand={hand} 
+                                    player={i} 
+                                    discard={this.discard} 
+                                    activePlayer={false} 
+                                    deckX = {this.state.deck.cards[0].x}
+                                    deckY = {this.state.deck.cards[0].y} 
+                                    key={i}/>);
         }
 
         this.setState({ playerHands: playerHands });
     },
-    discard: async function(card, active, hand){
+    discard: function(card, active, hand){
 
-        if(active) {
-            card.$el.style.zIndex = 100;
-            card.$el.onclick = {}
+        let discard = this.state.discardZ;
+        setTimeout(function() {
+            card.$el.style.zIndex = discard;           
+        }, 250);       
+        this.state.discardZ = this.state.discardZ + 1;
 
-            await card.animateTo({
-                delay: 10,
-                duration: 250,
-                x: Math.round(this.state.deck.cards[0].x + 100),
-                y: Math.round(this.state.deck.cards[0].y),
-                rot: 0
-            }); 
-
-            let discard = this.state.discardZ;
-            setTimeout(function() {
-                card.$el.style.zIndex = discard;           
-            }, 250);       
-            this.state.discardZ = this.state.discardZ + 1;
-            
-            for (var i =0; i < hand.length; i++){
-                if (hand[i].suit === card.suit && hand[i].rank === card.rank) {
-                    hand.splice(i,1);
-                    break;
-                }
+        let playerHands = this.state.playerHands;
+        let playerTurn = (this.state.playerTurn + 1) % this.state.numOfPlayers;
+        
+        for(let i = 0; i < playerHands.length; i++) {
+            if(i === playerTurn){
+                playerHands[i] = React.cloneElement(
+                    playerHands[i], 
+                    { activePlayer: true }
+                );
+            } else {
+                playerHands[i] = React.cloneElement(
+                    playerHands[i],
+                    { activePlayer: false }
+                );
             }
-
-            let playerHands = this.state.playerHands;
-            let playerTurn = (this.state.playerTurn + 1) % this.state.numOfPlayers;
-            
-            for(let i = 0; i < playerHands.length; i++) {
-                if(i === playerTurn){
-                    playerHands[i] = React.cloneElement(
-                        playerHands[i], 
-                        { activePlayer: true }
-                    );
-                } else {
-                    playerHands[i] = React.cloneElement(
-                        playerHands[i],
-                        { activePlayer: false,
-                          hand: hand }
-                    );
-                }
-            }
-
-            console.log(playerHands);
-            this.setState({ 
-                playerHands: playerHands,
-                playerTurn: playerTurn
-            });
         }
+
+        this.setState({ 
+            //playerHands: playerHands,
+            playerTurn: playerTurn
+        });
+    
     },
     render: function() {
 
