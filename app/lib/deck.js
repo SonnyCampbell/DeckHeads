@@ -80,7 +80,7 @@ export default function Deck (jokers) {
         //card.disableDragging()
 
         let delay = 250 + (250 * i)
-        hand.push(card)
+        
 
         card.animateTo({
           delay: delay,
@@ -94,17 +94,21 @@ export default function Deck (jokers) {
             card.$el.style.zIndex = (len - 1) + i
           },
           onComplete: function () {
-            card.setSide('front')
+            if (player === 0)
+            {
+              card.setSide('front');
+            }
+            
           }
         });
-
-        //card.$el.style.zIndex = i
-        //console.log(card.$el.style.zIndex);
+          
+        hand.push(card)
       }
 
       return hand;
       
   }
+
 
   
 }

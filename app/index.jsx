@@ -8,6 +8,10 @@ import Deck  from './lib/deck';
 import getFontSize from './lib/fontSize'
 
 var Hand = React.createClass({
+    componentWillReceiveProps(nextProps) {
+        this.forceUpdate();  
+        console.log("test");  
+    },
     onMouseOver: function(card){
         if (this.props.activePlayer){
             setTimeout(function() {
@@ -27,19 +31,26 @@ var Hand = React.createClass({
     },
     reSortHand: function(hand){
         let fontSize = getFontSize();
-
-        console.log(hand);
+        //console.log(hand.length);
 
         for (let i = 0; i < hand.length; i++) {
             let card = hand[i];
-            card.animateTo({
-                duration: 10,
-                delay: 250,
 
-                x: Math.round((i - 2.05) * 20 * fontSize / 16),
-                y: Math.round(-130 * fontSize / 16) + ((260 * fontSize / 16) * this.props.player),
-                rot: -10 + (i * 5)
-            });
+            if(card.rot != (-10 + (i * 5))) // If card actually needs to move a spot
+            // TODO: Make this check better
+            {
+                card.animateTo({
+                    duration: 10,
+                    delay: 250,
+
+                    x: Math.round((i - 2.05) * 20 * fontSize / 16),
+                    y: Math.round(-130 * fontSize / 16) + ((260 * fontSize / 16) * this.props.player),   
+                    rot: -10 + (i * 5)
+                });
+            }
+            
+
+            
         }
     },
     discardCard: function(card){
@@ -76,13 +87,18 @@ var Hand = React.createClass({
         let player = this.props.player;
         let active = this.props.activePlayer;
 
-        console.log('handsize ' + hand.length);
+        //console.log('handsize ' + hand.length);
         //this.reSortHand(hand, player);
+        //this.reSortHand(hand);
 
+        if (active)
+            hand.map((theCard) => theCard.setSide('front'));
+        else
+            hand.map((theCard) => theCard.setSide('back'));
 
         for (let card of hand){
             //card.$el.onclick = this.props.discard.bind(null, card, active, hand);
-            card.$el.onclick = this.discardCard.bind(null, card);
+            card.$el.onclick = this.discardCard.bind(this, card);
             card.$el.onmouseover = this.onMouseOver.bind(null, card);
             card.$el.onmouseleave = this.onMouseLeave.bind(null, card);
         };
@@ -107,37 +123,73 @@ var Game = React.createClass({
 
         // add to DOM
         deck.mount($deckContainer);
-        deck.cards.forEach(function (card, i) {
-            //card.enableDragging();
-            //card.enableFlipping();
+
+        for(let i = 0; i < deck.cards.length; i++)
+        {
+            let card = deck.cards[i];
+            card.$el.onclick = this.dealCard.bind(this, card);
+
             setTimeout(function () {
                 card.setSide('back')
             }, i * 7.5)
-        });
+        }
+        
         deck.shuffle();
 
         let playerHands = [];
         for (let i = 0; i < this.state.numOfPlayers; i++){
             let hand = deck.deal(5, i);
-            if (i===0)
-                playerHands.push(<Hand hand={hand} 
-                                    player={i} 
-                                    discard={this.discard} 
-                                    activePlayer={true}
-                                    deckX = {this.state.deck.cards[0].x}
-                                    deckY = {this.state.deck.cards[0].y} 
-                                    key={i}/>);
-            else
-                playerHands.push(<Hand hand={hand} 
-                                    player={i} 
-                                    discard={this.discard} 
-                                    activePlayer={false} 
-                                    deckX = {this.state.deck.cards[0].x}
-                                    deckY = {this.state.deck.cards[0].y} 
-                                    key={i}/>);
+    
+            playerHands.push(<Hand hand={hand} 
+                                player={i} 
+                                discard={this.discard} 
+                                activePlayer={i===0}
+                                deckX = {this.state.deck.cards[0].x}
+                                deckY = {this.state.deck.cards[0].y} 
+                                key={i}/>);
+
         }
 
         this.setState({ playerHands: playerHands });
+    },
+    dealCard: function(card){
+        let len = this.state.deck.cards.length; 
+        this.state.deck.cards.pop();
+        let hand = this.state.playerHands[this.state.playerTurn].props.hand;
+        let fontSize = getFontSize();
+        let zIndex = hand.length > 0 ? Number(hand[hand.length-1].$el.style.zIndex) + 1 : card.$el.style.zIndex;
+
+        console.log(this.state.playerTurn);
+
+        card.animateTo({
+          delay: 0,
+          duration: 250,
+
+          x: Math.round((hand.length - 2.05) * 20 * fontSize / 16),
+          y: Math.round(-130 * fontSize / 16) + ((260 * fontSize / 16) * this.state.playerTurn),
+          rot: -10 + (hand.length * 5),
+
+          onStart: function () {
+            card.$el.style.zIndex = zIndex;
+            //console.log(card.$el.style.zIndex );
+          },
+          onComplete: function () {
+            card.setSide('front')
+          }
+        });
+        
+        hand.push(card); 
+
+        let playerHands = this.state.playerHands;
+        playerHands[this.state.playerTurn] = React.cloneElement(
+            playerHands[this.state.playerTurn], 
+            { hand: hand }
+        );
+
+        this.setState({ 
+            playerHands: playerHands
+        });
+        
     },
     discard: function(card, active, hand){
 
@@ -161,27 +213,24 @@ var Game = React.createClass({
                     playerHands[i],
                     { activePlayer: false }
                 );
+                
             }
+            //playerHands[i].forceUpdate();
         }
 
         this.setState({ 
-            //playerHands: playerHands,
+            playerHands: playerHands,
             playerTurn: playerTurn
         });
     
     },
     render: function() {
-
-        let playerHands = this.state.playerHands;  
-
         return (
-        <div id="game">
-            <h1>Deck Heads</h1>
-            <hr />
-            
-            {playerHands}
-            
-        </div>
+            <div id="game">
+                <h1>Deck Heads</h1>
+                <hr />           
+                {this.state.playerHands}           
+            </div>
         );
     }
 });
